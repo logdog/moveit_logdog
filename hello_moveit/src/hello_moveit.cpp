@@ -179,6 +179,12 @@ int main(int argc, char* argv[])
 
   RCLCPP_INFO(logger, "Generated %zu waypoints", waypoints.size());
   
+  // Set velocity and acceleration scaling for faster execution BEFORE computing the path
+  move_group_interface.setMaxVelocityScalingFactor(1.0);  // 100% of max velocity (default is often 0.1)
+  move_group_interface.setMaxAccelerationScalingFactor(1.0);  // 100% of max acceleration (default is often 0.1)
+  
+  RCLCPP_INFO(logger, "Set velocity scaling to 100%% and acceleration scaling to 100%%");
+  
   // Compute Cartesian path through waypoints
   moveit_msgs::msg::RobotTrajectory trajectory;
   const double eef_step = 0.0001; // 1mm steps
