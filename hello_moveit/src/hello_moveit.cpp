@@ -102,10 +102,19 @@ int main(int argc, char* argv[])
     RCLCPP_INFO(logger, "  - %s", link_name.c_str());
   }
 
-  // Get current pose of the end effector
-  auto current_pose = move_group_interface.getCurrentPose();
+  // Check the planning frame - this is what MoveIt uses as reference
+  std::string planning_frame = move_group_interface.getPlanningFrame();
+  RCLCPP_INFO(logger, "Planning frame: %s", planning_frame.c_str());
+  
+  // Check the end effector link
+  std::string ee_link_name = move_group_interface.getEndEffectorLink();
+  RCLCPP_INFO(logger, "End effector link: %s", ee_link_name.c_str());
+
+  // Get current pose of the end effector - this will be relative to the planning frame
+  auto current_pose = move_group_interface.getCurrentPose();  // Uses default end effector link
+  
   RCLCPP_INFO(logger, "Current end effector pose:");
-  RCLCPP_INFO(logger, "Frame: %s", current_pose.header.frame_id.c_str());
+  RCLCPP_INFO(logger, "Frame: %s (this should match planning frame)", current_pose.header.frame_id.c_str());
   RCLCPP_INFO(logger, "Position - x: %f, y: %f, z: %f", 
               current_pose.pose.position.x, 
               current_pose.pose.position.y, 
@@ -116,9 +125,9 @@ int main(int argc, char* argv[])
               current_pose.pose.orientation.z,
               current_pose.pose.orientation.w);
 
-  // Construct and initialize MoveItVisualTools
+  // Construct and initialize MoveItVisualTools - use the same frame as planning
   auto moveit_visual_tools =
-      moveit_visual_tools::MoveItVisualTools{ node, "base_link", rviz_visual_tools::RVIZ_MARKER_TOPIC,
+      moveit_visual_tools::MoveItVisualTools{ node, planning_frame, rviz_visual_tools::RVIZ_MARKER_TOPIC,
                                               move_group_interface.getRobotModel() };
   moveit_visual_tools.deleteAllMarkers();
   moveit_visual_tools.loadRemoteControl();
@@ -127,7 +136,7 @@ int main(int argc, char* argv[])
   auto const draw_title = [&moveit_visual_tools](auto text) {
     auto const text_pose = [] {
       auto msg = Eigen::Isometry3d::Identity();
-      msg.translation().z() = 1.0;  // Place text 1m above the base link
+      msg.translation().z() = 1.0;  // Place text 1m above the planning frame
       return msg;
     }();
     moveit_visual_tools.publishText(text_pose, text, rviz_visual_tools::WHITE, rviz_visual_tools::XLARGE);
